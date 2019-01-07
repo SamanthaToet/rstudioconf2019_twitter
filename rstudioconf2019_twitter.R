@@ -34,7 +34,6 @@ conf_tidy <- conf_tidy %>%
     anti_join(stop_words) #small n
 
 # Explore
-
 conf_tidy %>%
     count(word, sort = TRUE)
 
