@@ -6,8 +6,7 @@ library(tidyverse) # ggplot
 
 
 # Connect to Twitter
-# ~*~ hidden twitter api magic ~*~
-
+# *~* Twitter API witchcraft *~*
 
 # Get tweets 
 conf_tweets <- search_tweets(
@@ -18,7 +17,7 @@ conf19_tweets <- search_tweets(
 
 conf <- rbind(conf_tweets, conf19_tweets) %>%
     select(created_at, text) %>%
-    mutate(id = c(1:28), text = tolower(text))
+    mutate(id = c(1:38), text = tolower(text))
 
 # Tidy
 conf_tidy <- conf %>%
@@ -46,5 +45,35 @@ conf_tidy %>%
     xlab(NULL) +
     coord_flip() #rstats, goals, and preparation 
 
+# Sentiments?
+# joy
+nrc_joy <- get_sentiments("nrc") %>%
+    filter(sentiment == "joy")
+
+conf_tidy %>%
+    inner_join(nrc_joy) %>%
+    count(word, sort = TRUE) # fun, improve, excited 
+
+# anticipation
+nrc_anticipation <- get_sentiments("nrc") %>%
+    filter(sentiment == "anticipation")
+
+conf_tidy %>%
+    inner_join(nrc_anticipation) %>%
+    count(word, sort = TRUE) # preparation, improve, wait
+
+#all nrc
+nrc <- get_sentiments("nrc")
+
+conf_tidy %>%
+    inner_join(nrc) %>%
+    count(word, sentiment, sort = TRUE) %>%
+    filter(n > 1) %>%
+    mutate(word = reorder(word, n)) %>%
+    ggplot(aes(word, n)) +
+    geom_col(aes(fill = sentiment)) +
+    xlab(NULL) +
+    coord_flip() # anticipation, joy, and positivity
 
 
+# next steps: sentiment analysis timeline leading up to event, wordclouds, n-grams, shiny app
