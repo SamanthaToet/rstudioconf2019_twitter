@@ -3,10 +3,11 @@
 library(rtweet) # interface with Twitter API
 library(tidytext) # sentiment analysis
 library(tidyverse) # ggplot
+library(wordcloud)
 
 
 # Connect to Twitter
-# *~* Twitter API witchcraft *~*
+# *~* API witchcraft *~*
 
 # Get tweets 
 conf_tweets <- search_tweets(
@@ -17,7 +18,7 @@ conf19_tweets <- search_tweets(
 
 conf <- rbind(conf_tweets, conf19_tweets) %>%
     select(created_at, text) %>%
-    mutate(id = c(1:38), text = tolower(text))
+    mutate(id = c(1:73), text = tolower(text))
 
 # Tidy
 conf_tidy <- conf %>%
@@ -45,7 +46,7 @@ conf_tidy %>%
     xlab(NULL) +
     coord_flip() #rstats, goals, and preparation 
 
-# Sentiments?
+# NRC sentiments
 # joy
 nrc_joy <- get_sentiments("nrc") %>%
     filter(sentiment == "joy")
@@ -73,7 +74,42 @@ conf_tidy %>%
     ggplot(aes(word, n)) +
     geom_col(aes(fill = sentiment)) +
     xlab(NULL) +
-    coord_flip() # anticipation, joy, and positivity
+    coord_flip() +
+    ggtitle("NRC sentiment counts")# anticipation, joy, and positivity
 
+# Bing sentiments
+bing_sentiment <- conf_tidy %>%
+    inner_join(get_sentiments("bing")) %>%
+    count(id, created_at, sentiment) %>%
+    spread(sentiment, n, fill = 0) %>%
+    mutate(sentiment = positive - negative)
 
-# next steps: sentiment analysis timeline leading up to event, wordclouds, n-grams, shiny app
+ggplot(bing_sentiment, aes(created_at, sentiment)) +
+    geom_line() +
+    labs(title = "Bing sentiment scores over time", 
+         x = "Date", y = "Sentiment") # more neg spikes as we get closer to the date  
+
+bing_word_counts <- conf_tidy %>%
+    inner_join(get_sentiments("bing")) %>%
+    count(word, sentiment, sort = TRUE) %>%
+    ungroup()
+
+bing_word_counts %>%
+    group_by(sentiment) %>%
+    top_n(10) %>%
+    ungroup() %>%
+    mutate(word = reorder(word, n)) %>%
+    ggplot(aes(word, n, fill = sentiment)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~sentiment, scales = "free_y") +
+    labs(x = NULL,
+         y = "Bing contribution to sentiment") +
+    coord_flip()
+
+# Wordcloud bc why not?
+conf_tidy %>%
+    anti_join(stop_words) %>%
+    count(word) %>%
+    with(wordcloud(word, n, max.words = 100, ordered.colors = TRUE))›
+
+# next steps: n-grams, shiny app
